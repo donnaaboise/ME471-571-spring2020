@@ -1,6 +1,17 @@
 #include <stdio.h>
 #include <mpi.h>
-#include <array_util.h>
+#include <time.h>
+
+void sleep(double t_total)
+{
+    double t0, t1;
+    t0 = clock();
+    t1 = t0;
+    while ((t1-t0)/CLOCKS_PER_SEC < t_total)
+    {
+        t1 = clock();
+    }
+}
 
 void main(int argc, char** argv)
 {

@@ -1,11 +1,14 @@
 CC = mpicc
 
-SRC = ../../src
-INCLUDE_DIR = -I../../src 
+SRC_DIR = ../../src
+INCLUDE_DIR = -I${SRC_DIR}
 
-objs = ${SRC}/array_util.c
+UTIL = ${SRC_DIR}/array_util.c
 
-.PHONY: demo1
+.PHONY: demo1 demo2
  
-demo1: demo1.c ${objs}
-	${CC} -o mpi_demo1  ${INCLUDE_DIR} demo1.c ${objs}  
+demo1: ${SRC} demo1.c
+	${CC} -o mpi_demo1  ${INCLUDE_DIR} ${UTIL} demo1.c 
+
+demo2: ${SRC} demo2.c
+	${CC} -o mpi_demo2  ${INCLUDE_DIR} demo2.c
