@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <mpi.h>
-#include "array_util.h"
 
 void main(int argc, char** argv)
 {
