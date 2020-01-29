@@ -359,11 +359,13 @@ double random_number()
   return (double) rand() / (double) RAND_MAX ;
 }
 
+/*
 int random_int(int m, int n)
 {
     int r = floor((n+0.999999-m)*random_number());
     return r;
 }
+*/
 
 void random_seed()
 {
