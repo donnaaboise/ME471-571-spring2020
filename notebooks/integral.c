@@ -23,16 +23,16 @@ int main(int argc, char** argv)
 
     /* Total number of intervals */
 
-    int N = pow2(11);
+    int N = atoi(argv[1]);    
 
     /* Interval over which to compute integral */
     double a = 0;
     double b = 1;
     double int_length = (b-a)/nprocs;
 
-    double intsub[2];
+    /* Create interval for each processor */
+    double intsub[2] = {a + my_rank*int_length, a + (my_rank+1)*int_length};
 
-    /* solution : 0.3041759198043616 */
     int n_local = N/nprocs;
     double x0 = intsub[0];
     double x1 = intsub[1];
@@ -45,29 +45,20 @@ int main(int argc, char** argv)
     }
 
     double total_sum;
-    int tag = 0;
-    if (my_rank == 0)
-    {
-        /* Compute integral */
-        total_sum = integral;
-        for(int p = 1; p < nprocs; p++)
-        {
-            int source = p;
-            double integral;
-            MPI_Recv(&integral,1,MPI_DOUBLE,source,tag,MPI_COMM_WORLD,&status);
-            total_sum += integral;
-        }
-    }
-    else
-    {
-        int dest = 0;
-        MPI_Send(&integral,1,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD);
-    }
+    int root = 0;
+    MPI_Reduce(&integral,&total_sum,1,MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);
 
     if (my_rank == 0)
     {        
         double error = fabs(total_sum - 0.3041759198043616);
-        printf("%8d %24.16f %12.4e\n",N,total_sum, error);
+        //printf("%8d %24.16f %12.4e\n",N,total_sum, error);
+
+        char fname[16];
+        sprintf(fname,"integral_%02d.out",nprocs);
+        FILE *fout = fopen(fname,"a");        
+        fwrite(&N,1,sizeof(int),fout);
+        fwrite(&error,1,sizeof(double),fout);
+        fclose(fout);
     }
 
     /* Aggregate sum over each interval on root node */
