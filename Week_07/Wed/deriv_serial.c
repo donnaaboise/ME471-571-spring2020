@@ -123,5 +123,10 @@ void main(int argc, char** argv)
 
     fclose(fout);
 
+    free(xmem);
+    free(qmem);
+    free(dmem);
+    free(smem);
+
     MPI_Finalize();
 }
