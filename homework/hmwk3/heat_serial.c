@@ -109,10 +109,7 @@ int main(int argc, char** argv)
             k++;
         }
 
-        /* Swap pointers */
-        double *qtmp = q;
         q = qp;  
-        qp = qtmp;
     }
     fclose(fout);
 
