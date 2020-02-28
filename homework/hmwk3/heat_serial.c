@@ -58,7 +58,7 @@ int main(int argc, char** argv)
        3.  Divide Tfinal by M to get get a dt that is guaranteed smaller than dt_est and  
            satisfies M*dt = Tfinal.
     */
-    double dt_stable = 1.001*dx2/2;        /* Stable time step */
+    double dt_stable = 0.95*dx2/2;        /* Stable time step */
     int M = ceil(Tfinal/dt_stable) + 1;   /* Compute M to guarantee we hit Tfinal */
     double dt = Tfinal/M;                 /* dt <= dt_stable; M*dt = Tfinal */
 
