@@ -67,36 +67,70 @@ void main(int argc, char** argv)
 
     /* ------------------------------- Numerical parameters ----------------------------*/
 
+    double m = N/nprocs;
+    double w = (b-a)/nprocs;
+
     double dx = (b-a)/N;
     double dx2 = dx*dx;
 
     /* Initialize data */
-    double *qmem = (double*) malloc((N+3)*sizeof(double));
-    double *smem = (double*) malloc((N+3)*sizeof(double));
+    double *qmem = (double*) malloc((m+3)*sizeof(double));
+    double *smem = (double*) malloc((m+3)*sizeof(double));
 
     double *q = &qmem[1];
     double *soln = &smem[1];
 
-    for(int i = -1; i <= N+1; i++)
+    for(int i = -1; i <= m+1; i++)
     {
-        double x = a + i*dx;
+        double x = a + rank*w + i*dx;
         q[i] = f(x);
         soln[i] = fderiv(x);
     }
 
-    /* ---------------------- Write meta data and solution to a file  ------------------*/
+    /* ----------------------------- Write data to a file  -----------------------------*/
 
-    FILE *fout = fopen("deriv.out","w");
-    fwrite(&N,1,sizeof(int),fout);
-    fwrite(&a,1,sizeof(double),fout);
-    fwrite(&b,1,sizeof(double),fout);
-    fwrite(&deriv_choice,1,sizeof(int),fout);
+    int node0 = 0;
+    FILE *fout;
+    double *qbig;
+    int *recvcounts;
+    int *displs;
 
-    fwrite(&soln[0],N+1,sizeof(double),fout);
+    if (rank == 0)
+    {
+        fout = fopen("deriv.out","w");
+        fwrite(&N,1,sizeof(int),fout);
+        fwrite(&a,1,sizeof(double),fout);
+        fwrite(&b,1,sizeof(double),fout);
+        fwrite(&deriv_choice,1,sizeof(int),fout);
+
+        qbig = (double*) malloc((N+1)*sizeof(double));
+        recvcounts = malloc(nprocs*sizeof(int));
+        displs = malloc(nprocs*sizeof(int));
+
+        for(int p = 0; p < nprocs; p++)
+        {
+            displs[p] = p*m;
+            recvcounts[p] = m+1;
+        }
+    }
+
+#if 1
+    MPI_Gatherv(&soln[0],m+1,MPI_DOUBLE,
+                qbig,recvcounts,displs,MPI_DOUBLE,
+                node0,MPI_COMM_WORLD);
+#else    
+    MPI_Gather(&soln[0],m,MPI_DOUBLE,qbig,m,MPI_DOUBLE,node0,MPI_COMM_WORLD);
+#endif
+
+    if (rank == 0)
+    {
+        fwrite(qbig,N+1,sizeof(double),fout);
+    }
 
     /* --------------------------- Compute the derivative  -----------------------------*/
 
-    double *deriv = (double*) malloc((N+1)*sizeof(double));
+    double *dmem = (double*) malloc((N+3)*sizeof(double));
+    double *deriv = &dmem[1];
 
     for(int i = 0; i <= N; i++)
     {
@@ -104,6 +138,7 @@ void main(int argc, char** argv)
         switch(deriv_choice)
         {
             case 1: 
+                /* First Derivative */
                 deriv[i] = (q[i+1] - q[i-1])/(2*dx);
                 break;
             case 2:
@@ -116,12 +151,23 @@ void main(int argc, char** argv)
         }
     }
 
-    fwrite(&deriv[0],N+1,sizeof(double),fout);
+#if 1
+    MPI_Gatherv(&deriv[0],m+1,MPI_DOUBLE,
+                qbig,recvcounts,displs,MPI_DOUBLE,
+                node0,MPI_COMM_WORLD);
+#else                
+    MPI_Gather(&deriv[0],m,MPI_DOUBLE,qbig, m,MPI_DOUBLE,node0,MPI_COMM_WORLD);
+#endif    
 
-    fclose(fout);
+    if (rank ==0)
+    {
+        fwrite(qbig,N+1,sizeof(double),fout);        
+        free(qbig);
+        fclose(fout);
+    }
 
-    free(deriv);
     free(qmem);
+    free(dmem);
     free(smem);
 
     MPI_Finalize();
