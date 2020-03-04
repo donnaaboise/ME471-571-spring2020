@@ -65,13 +65,15 @@ int main(int argc, char** argv)
     /* More meta data */
     fwrite(&M,1,sizeof(int),fout);
 
-    /* Print out only 'nout' time steps */
+    /* 
+       Set up an array of 'n' values that tell us when to save our solution 
+       so that we save exactly nout time steps at roughly equally spaced times.  
+    */
     int *noutsteps = malloc(nout*sizeof(int));    
     double dM = ((double) M-1)/(nout-1);
     dM = (dM < 1) ? 1 : dM;
-    for(int m = 0; m < nout; m++)
+    for(int m = 0; m <= nout-1; m++)
     {
-        /* Last time step is n==M-1 */
         noutsteps[m] = (int) floor(m*dM);
         //printf("%5d %5d\n",m,noutsteps[m]);
     }
@@ -89,8 +91,8 @@ int main(int argc, char** argv)
     double *qpmem = (double*) malloc((N+3)*sizeof(double));
     double *qp = &qpmem[1];
 
-    /* Time loop */
-    for(int n = 0; n < M; n++)
+    /* Time loop;  compute q^{n+1} at each time step  */
+    for(int n = 0; n <= M-1; n++)
     {
         t += dt;
 
