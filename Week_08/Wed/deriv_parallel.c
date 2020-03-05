@@ -120,7 +120,7 @@ void main(int argc, char** argv)
                 qbig,recvcounts,displs,MPI_DOUBLE,
                 node0,MPI_COMM_WORLD);
 #else    
-    MPI_Gather(&soln[0],m,MPI_DOUBLE,qbig,m,MPI_DOUBLE,node0,MPI_COMM_WORLD);
+    MPI_Gather(&soln[1],m,MPI_DOUBLE,qbig,m,MPI_DOUBLE,node0,MPI_COMM_WORLD);
 #endif
 
     if (rank == 0)

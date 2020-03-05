@@ -34,7 +34,7 @@ double f2(double x)
     return 1/(1 + 25*x*x);
 }
 
-void main(int argc, char** argv)
+void main(int argc, char* argv[])
 {
     MPI_Init(&argc, &argv);
 
