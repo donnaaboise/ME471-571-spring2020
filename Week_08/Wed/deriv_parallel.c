@@ -77,8 +77,8 @@ void main(int argc, char** argv)
     double *qmem = (double*) malloc((m+3)*sizeof(double));
     double *smem = (double*) malloc((m+3)*sizeof(double));
 
-    double *q = &qmem[1];
-    double *soln = &smem[1];
+    double *const q = &qmem[1];
+    double *const soln = &smem[1];
 
     for(int i = -1; i <= m+1; i++)
     {
@@ -95,6 +95,7 @@ void main(int argc, char** argv)
     int *recvcounts;
     int *displs;
 
+    /* Write out some meta-data and the true derivative */
     if (rank == 0)
     {
         fout = fopen("deriv.out","w");
@@ -114,7 +115,7 @@ void main(int argc, char** argv)
         }
     }
 
-#if 1
+#if 0
     MPI_Gatherv(&soln[0],m+1,MPI_DOUBLE,
                 qbig,recvcounts,displs,MPI_DOUBLE,
                 node0,MPI_COMM_WORLD);
@@ -129,9 +130,10 @@ void main(int argc, char** argv)
 
     /* --------------------------- Compute the derivative  -----------------------------*/
 
-    double *dmem = (double*) malloc((N+3)*sizeof(double));
+    double *dmem = (double*) malloc((N+3)*sizeof(double));  
     double *deriv = &dmem[1];
 
+    /* Compute approximate derivatives */
     for(int i = 0; i <= N; i++)
     {
         /* first derivative */
@@ -151,7 +153,7 @@ void main(int argc, char** argv)
         }
     }
 
-#if 1
+#if 0
     MPI_Gatherv(&deriv[0],m+1,MPI_DOUBLE,
                 qbig,recvcounts,displs,MPI_DOUBLE,
                 node0,MPI_COMM_WORLD);
