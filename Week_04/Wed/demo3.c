@@ -35,7 +35,6 @@ void main(int argc, char** argv)
     else
     {
         int sender = 0;
-        int count;
         MPI_Recv(x,1,MPI_DOUBLE,sender,tag,MPI_COMM_WORLD,&status);
         printf("Rank %d received %f\n",my_rank,x);
     }

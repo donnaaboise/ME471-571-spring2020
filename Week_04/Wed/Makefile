@@ -8,16 +8,16 @@ UTIL = ${SRC_DIR}/array_util.c
 .PHONY: demo0 demo1 demo2 demo3 demo4
 
 demo0: ${SRC} demo0.c
-	${CC} -o mpi_demo0  ${INCLUDE_DIR} ${UTIL} demo0.c 
+	${CC} -o demo0  ${INCLUDE_DIR} ${UTIL} demo0.c 
  
 demo1: ${SRC} demo1.c
-	${CC} -o mpi_demo1  ${INCLUDE_DIR} ${UTIL} demo1.c 
+	${CC} -o demo1  ${INCLUDE_DIR} ${UTIL} demo1.c 
 
 demo2: ${SRC} demo2.c
-	${CC} -o mpi_demo2  ${INCLUDE_DIR} ${UTIL} demo2.c
+	${CC} -o demo2  ${INCLUDE_DIR} ${UTIL} demo2.c
 
 demo3: ${SRC} demo3.c
-	${CC} -o mpi_demo3  ${INCLUDE_DIR} ${UTIL} demo3.c
+	${CC} -o demo3  ${INCLUDE_DIR} ${UTIL} demo3.c
 
 demo4: ${SRC} demo4.c
-	${CC} -o mpi_demo4  ${INCLUDE_DIR} ${UTIL} demo4.c
+	${CC} -o demo4  ${INCLUDE_DIR} ${UTIL} demo4.c
