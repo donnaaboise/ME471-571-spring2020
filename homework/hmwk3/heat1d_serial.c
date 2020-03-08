@@ -11,8 +11,6 @@ double init(double x)
 
 int main(int argc, char** argv)
 {
-
-    /* Initialize MPI ...*/
     /* ------------------------------ Input parameters -------------------------------- */
     int N = atoi(argv[1]);
     int nout = atoi(argv[2]);    
@@ -31,7 +29,7 @@ int main(int argc, char** argv)
     double dx2 = dx*dx;
 
     /* Write out meta data  */
-    FILE *fout = fopen("heat.out","w");        
+    FILE *fout = fopen("heat1d.out","w");        
     fwrite(&N,1,sizeof(int),fout);
     fwrite(&a,1,sizeof(double),fout);
     fwrite(&b,1,sizeof(double),fout);
