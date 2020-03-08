@@ -20,23 +20,18 @@ void main(int argc, char** argv)
     random_seed();
     if (my_rank == 0)
     {
-        /* Send a message to each proc! */
-        for(int p = 1; p < nprocs; p++)
+        int dest = p;
         {
-            int dest = p;
-            {
-                double x = random_number();            
-                printf("Sending %f to rank %d\n",x,p);
-                MPI_Isend(&x,1,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD,&request1);                
-                printf("Done sending %f to rank %d\n",x,p);
-            }
-            {
-                int a = 12345;
-                printf("Sending %d to rank %d\n",a,p);
-                MPI_Isend(&a,1,MPI_INTEGER,dest,tag,MPI_COMM_WORLD,&request2);
-                printf("Done sending %d to rank %d\n",a,p);
-            }
-
+            double x = random_number();            
+            printf("Sending %f to rank %d\n",x,p);
+            MPI_Isend(&x,1,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD,&request1);                
+            printf("Done sending %f to rank %d\n",x,p);
+        }
+        {
+            int a = 12345;
+            printf("Sending %d to rank %d\n",a,p);
+            MPI_Isend(&a,1,MPI_INTEGER,dest,tag,MPI_COMM_WORLD,&request2);
+            printf("Done sending %d to rank %d\n",a,p);
         }
     }
     else if (my_rank == 1)
@@ -46,16 +41,17 @@ void main(int argc, char** argv)
             double x;
             printf("Rank %d is waiting to receive a float\n",my_rank);
             MPI_Irecv(&x,1,MPI_DOUBLE,sender,tag,MPI_COMM_WORLD,&request1); 
+            MPI_Wait(&request1,MPI_STATUS_IGNORE);
             printf("Rank %d received %f\n",my_rank,x);               
         }
         {
             int a;
             printf("Rank %d is waiting to receive an int\n",my_rank);
             MPI_Irecv(&a,1,MPI_INTEGER,sender,tag,MPI_COMM_WORLD,&request2); 
+            MPI_Wait(&request2,MPI_STATUS_IGNORE);
+            printf("Rank %d received %d\n",my_rank,a);               
         }
     }
-
-    
 
 
     MPI_Finalize();
