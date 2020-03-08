@@ -18,16 +18,16 @@ void main(int argc, char** argv)
 
     int tag = 0;
     random_seed();
+    char message[100];
     if (my_rank == 0)
     {
         /* Send a message to each proc! */
         for(int p = 1; p < nprocs; p++)
         {
             int dest = p;
-            double x[3];
-            x[0] = random_number();
-            x[1] = random_number();
-            x[2] = random_number();
+            double x = random_number();
+            int a = 3;
+            sprintf(message,"Hello Processor %d",p);
             printf("Sending %f to rank %d\n",x[0],p);
             MPI_Send(x,3,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD);
         }
@@ -36,16 +36,16 @@ void main(int argc, char** argv)
     {
         int sender = 0;
         double x[3];
-        MPI_Recv(x,2,MPI_DOUBLE,sender,tag,MPI_COMM_WORLD,&status);
-#if 1        
+        MPI_Recv(x,3,MPI_DOUBLE,sender,tag,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+#if 0
         int count;
         int ierror = MPI_Get_count(&status,MPI_DOUBLE,&count);
-        if (count != 3)
+        if (ierror != 0 || count != 3)
         {
             printf("ierror = %d; Did not receive all info\n",ierror);
             exit(0);
         }
-#endif        
+#endif
         printf("Rank %d received %f\n",my_rank,x[0]);
     }
 

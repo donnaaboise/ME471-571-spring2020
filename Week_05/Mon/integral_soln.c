@@ -8,7 +8,7 @@ double integrand(double x)
     return pow((x-1),2)*exp(-pow(x,2));
 }
 
-int main(int argc, char** argv)
+void main(int argc, char** argv)
 {
     /* MPI variables */
     MPI_Status status;
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
             int dest = p;
             intsub[0] = a + p*int_length;
             intsub[1] = a + (p+1)*int_length;
-            MPI_Send(intsub,2,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD);                
+            MPI_Send(intsub,2,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD);
         }
         intsub[0] = a;
         intsub[1] = a + int_length;
@@ -57,17 +57,16 @@ int main(int argc, char** argv)
 
     /* solution : 0.3041759198043616 */
     int n_local = N/nprocs;
-    double x0 = intsub[0];
-    double x1 = intsub[1];
+    double integral = 0;
     double h = (b-a)/N;
-    double integral = 0.5*(integrand(x0) + integrand(x1))*h;
-    for(int i = 1; i < n_local; i++)
+    for(int i = 0; i < n_local; i++)
     {
         double x = intsub[0] + h*i;
         integral += integrand(x)*h;
     }
 
     double total_sum = integral;
+#if 0    
     if (my_rank == 0)
     {
         /* Compute integral */
@@ -84,15 +83,20 @@ int main(int argc, char** argv)
         int dest = 0;
         MPI_Send(&integral,1,MPI_DOUBLE,dest,tag,MPI_COMM_WORLD);
     }
+#else
+    print_global("Using MPI_Reduce + MPI_Bcast\n");
+    MPI_Reduce(&integral,&total_sum,1,MPI_DOUBLE,MPI_SUM,root,MPI_COMM_WORLD);    
+    total_sum *= h;
+
+#endif    
 
     if (my_rank == 0)
     {        
-        double error = fabs(total_sum - 0.3041759198043616);
+        double error = total_sum - 0.3041759198043616;
         printf("%8d %24.16f %12.4e\n",N,total_sum, error);
-    }
+    }    
 
     /* Aggregate sum over each interval on root node */
 
     MPI_Finalize();
-    return 0;
 }
