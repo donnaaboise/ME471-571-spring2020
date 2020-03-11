@@ -22,15 +22,26 @@ void main(int argc, char** argv)
     MPI_Cart_create(MPI_COMM_WORLD, ndim, dims,  periodicity, reorder, &comm_cart);
 
     int dir = 0;
-    int disp = 1;  /* right shift */
+    int disp = -1;  /* Get a value from right neighbor */
     int source, dest;
+    /* source : source of data for this proc
+       dest   : Where this proc will send data 
+    */
     MPI_Cart_shift(comm_cart, dir, disp, &source, &dest);
+    if (source == MPI_PROC_NULL && disp == 1)
+    {
+        printf("Rank %d : No right neighbor found\n",rank);
+    }
+    else if (source == MPI_PROC_NULL && disp == -1)
+    {
+        printf("Rank %d : No left neighbor found\n",rank);
+    }
 
     int tag = 0;
-    int ierr = MPI_Sendrecv_replace(&myval, 1, MPI_INTEGER, dest, tag, 
+    MPI_Sendrecv_replace(&myval, 1, MPI_INTEGER, dest, tag, 
                                     source, tag, comm_cart, MPI_STATUS_IGNORE);
 
-    printf("Rank %d : myval = %d\n",rank, myval);
+    printf("Rank %d : myval = %d (%d, %d)\n",rank, myval, source, dest);
 
     MPI_Finalize();
 }

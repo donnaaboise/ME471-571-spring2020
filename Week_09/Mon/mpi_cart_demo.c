@@ -31,10 +31,10 @@ void main(int argc, char** argv)
     int dir = 0;
     int disp = 1;  
     int source, dest;
-    MPI_Cart_shift(comm_cart, dir, disp, &source, &dest);
+    int ierr = MPI_Cart_shift(comm_cart, dir, disp, &source, &dest);
 
     int tag = 0;
-    int ierr = MPI_Sendrecv(&q[0], 1, MPI_DOUBLE, dest, tag, 
+    MPI_Sendrecv(&q[0], 1, MPI_DOUBLE, dest, tag, 
                             &q[-1], 1, MPI_DOUBLE, source, tag, comm_cart, MPI_STATUS_IGNORE);
 
     disp = -1;  /* exchange right */
