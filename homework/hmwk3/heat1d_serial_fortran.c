@@ -9,7 +9,7 @@ typedef double (*init_t)(double *x);
 extern "C"
 {
 #endif
-    /* Wrap fortran code in case you are using a C++ compiler */
+    /* Wrap fortran header in case you are using a C++ compiler */
     void init_q_fort_(int* N, int* mbc, double* a, double* b, init_t init_f, double q[]);
     void update_q_fort_(int* N, int* mbc, double* dt, double* dx, double q[], double qp[]);
 
