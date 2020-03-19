@@ -1,11 +1,17 @@
-function pout = steepest_descent(A,b,tol,kmax)
+function pout = steepest_descent(A,b,tol,kmax,fignum)
 
 plot_single_contour = true;
 
 F = @(x) x'*A*x - 2*b'*x;
 
-figure(1);
+figure(fignum);
 clf;
+
+title('Steepest-Descent','fontsize',18);
+set(gca,'fontsize',16);
+xlabel('x','fontsize',16);
+ylabel('y','fontsize',16);
+
 
 plot_contours(A,b);
 fprintf('Choose starting guess\n');

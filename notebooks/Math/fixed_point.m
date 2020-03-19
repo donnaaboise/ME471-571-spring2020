@@ -1,4 +1,4 @@
-function pout = fixed_point(A,b,method,tol,kmax)
+function pout = fixed_point(A,b,method,tol,kmax,fignum)
 
 global N
 
@@ -16,7 +16,7 @@ end
 g = @(x) x + M\(b - A*x);
 
 
-figure(1);
+figure(fignum);
 clf;
 
 title(sprintf('%s',method),'fontsize',18);

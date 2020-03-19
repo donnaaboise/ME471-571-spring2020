@@ -9,17 +9,33 @@ b = -1 + 2*rand(N,1);
 tol = 1e-6;
 kmax = 1000;
 
-figure(2);
-clf;
-
 % ------------------------------ Jacobi -----------------------------------
 figure(1);
 mstr = 'Jacobi';
-A = get_matrix(B,'SPD');
+fignum = 1;
+A = get_matrix(B,'SPD');  % Might not be diagonally dominant.
 disp(A)
-r = fixed_point(A,b,mstr,tol,kmax);
 
-figure(2);
+% Check if matrix is diagonally dominant
+d = diag(A);
+D = diag(d);
+A1 = A - D;
+v = abs(d) - sum(abs(A1'))';
+if sum(v < 0) > 0
+    ch = input(['-----> Matrix for the Jacobi method is not diagonally dominant.\n', ...
+                '-----> Hit enter to continue or ''q'' to quit : '],'s');
+    if (~isempty(ch))
+        return
+    end
+else
+    % w = abs(d)./sum(abs(A1'))';
+    fprintf('Matrix is diagonally dominant - Jacobi method should converge quickly!\n');
+    fprintf('Factor is %f\n',max(v));
+end
+
+r = fixed_point(A,b,mstr,tol,kmax,fignum);
+
+figure(5);
 p(1) = semilogy(r,'b.-','markersize',20);
 hold on;
 lstr{1} = mstr;
@@ -27,12 +43,13 @@ lstr{1} = mstr;
 % ---------------------------- Gauss-Seidel -------------------------------
 fprintf('\n');
 input('Hit enter to see Gauss-Seidel : ');
+fignum = 2;
 
 mstr = 'Gauss-Seidel';
 A = get_matrix(B,'SPD');
-r = fixed_point(A,b,mstr,tol,kmax);
+r = fixed_point(A,b,mstr,tol,kmax,fignum);
 
-figure(2);
+figure(5);
 p(2) = semilogy(r,'r.-','markersize',20);
 lstr{2} = mstr;
 
@@ -40,27 +57,32 @@ lstr{2} = mstr;
 fprintf('\n');
 A = get_matrix(B,'SPD');
 input('Hit enter to see Steepest-descent : ');
+fignum = 3;
+
 
 mstr = 'Steepest-descent';
-r = steepest_descent(A,b,tol,kmax);
-figure(2);
+r = steepest_descent(A,b,tol,kmax,fignum);
+
+figure(5);
 p(3) = semilogy(r,'m.-','markersize',20);
 lstr{3} = mstr;
 
 % -------------------------- Conjugate Gradient ---------------------------
 fprintf('\n');
 input('Hit enter to see Conjugate gradient : ');
+fignum = 4;
 
 mstr = 'Conjugate-gradient';
 A = get_matrix(B,'SPD');
-r = cj(A,b,tol,kmax);
-figure(2);
+r = cj(A,b,tol,kmax,fignum);
+
+figure(5);
 p(4) = semilogy(r,'c.-','markersize',20);
 lstr{4} = mstr;
 
 
 % ---------------------------- Finish plotting ----------------------------
-figure(2)
+figure(5)
 
 plot(xlim,[tol,tol],'k--');
 

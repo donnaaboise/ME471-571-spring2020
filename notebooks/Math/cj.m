@@ -1,7 +1,15 @@
-function pout = cj(A,b,tol,kmax)
+function pout = cj(A,b,tol,kmax,fignum)
 
-figure(1);
+figure(fignum);
 clf;
+
+title('Conjugate Gradient','fontsize',18);
+set(gca,'fontsize',16);
+xlabel('x','fontsize',16);
+ylabel('y','fontsize',16);
+
+hold on;
+
 
 plot_single_contour = true;
 
