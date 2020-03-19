@@ -1,14 +1,11 @@
 function plot_contours(A,b,s)
 
-
-
-
-x = A\b;
+xbar = A\b;
 
 % [evec,~] = eig(A);
 
-xlim = [x(1)-4 x(1)+4];
-ylim = [x(2)-4 x(2)+4];
+xlim = [xbar(1)-4 xbar(1)+4];
+ylim = [xbar(2)-4 xbar(2)+4];
 xc = linspace(xlim(1),xlim(2),500);
 yc = linspace(ylim(1),ylim(2),500);
 [xm,ym] = meshgrid(xc,yc);
@@ -27,7 +24,7 @@ end
 contour(xm,ym,f,cv,'linewidth',lw);
 hold on;
 
-plot(x(1),x(2),'r.','markersize',30);
+plot(xbar(1),xbar(2),'r.','markersize',30);
 
 drawnow
 
@@ -36,11 +33,11 @@ daspect([1,1,1]);
 %%{
 [evec,~] = eig(A);
 t = linspace(-2,2,20);
-p1 = x + 5*evec(:,1);
-p2 = x - 5*evec(:,1);
+p1 = xbar + 5*evec(:,1);
+p2 = xbar - 5*evec(:,1);
 plot([p1(1) p2(1)],[p1(2) p2(2)],'k--');
-p1 = x + 5*evec(:,2);
-p2 = x - 5*evec(:,2);
+p1 = xbar + 5*evec(:,2);
+p2 = xbar - 5*evec(:,2);
 plot([p1(1) p2(1)],[p1(2) p2(2)],'k--');
 axis([xlim ylim]);
 %}
