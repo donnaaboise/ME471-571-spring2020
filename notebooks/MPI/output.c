@@ -6,6 +6,8 @@
 
 #define PI 3.14159265358979323846264338327
 
+void mpi_debug();
+
 double utrue(double x, double y)
 {
     double u;
@@ -41,19 +43,46 @@ void delete_2d(int mbc, double ***q)
     *q = NULL;
 }
 
+typedef struct
+{
+    double t; 
+    MPI_Datatype localarray_t;
+} struct_timeinfo_t;
+
+void create_timeinfo_type(MPI_Datatype localarray_t, MPI_Datatype *timeinfo_t)
+{
+    int blocksize = 2;
+    int block_lengths[2] = {1,1}; /* Use blocksize to dimension array */
+
+
+    /* Set up types */
+    MPI_Datatype typelist[2];
+    typelist[0] = MPI_DOUBLE;
+    typelist[1] = localarray_t;
+
+    /* Set up displacements */
+    MPI_Aint disp[4];
+    disp[0] = offsetof(struct_timeinfo_t,t);
+    disp[1] = offsetof(struct_timeinfo_t,localarray_t);
+
+    MPI_Type_create_struct(blocksize,block_lengths, disp, typelist, timeinfo_t);
+    MPI_Type_commit(timeinfo_t);
+}
+
+
+
 typedef struct 
 {
     double xgrid[2];
     double ygrid[2];
     int N[2];
     int Mout;
-} struct_domain_t;
+} struct_header_t;
 
-void build_domain_type(MPI_Datatype *domain_t)
+void create_header_type(MPI_Datatype *header_t)
 {
     int blocksize = 4;
     int block_lengths[4] = {2,2,2,1}; /* Use blocksize to dimension array */
-
 
     /* Set up types */
     MPI_Datatype typelist[4];
@@ -64,13 +93,13 @@ void build_domain_type(MPI_Datatype *domain_t)
 
     /* Set up displacements */
     MPI_Aint disp[4];
-    disp[0] = offsetof(struct_domain_t,xgrid);
-    disp[1] = offsetof(struct_domain_t,ygrid);
-    disp[2] = offsetof(struct_domain_t,N);
-    disp[3] = offsetof(struct_domain_t,Mout);
+    disp[0] = offsetof(struct_header_t,xgrid);
+    disp[1] = offsetof(struct_header_t,ygrid);
+    disp[2] = offsetof(struct_header_t,N);
+    disp[3] = offsetof(struct_header_t,Mout);
 
-    MPI_Type_create_struct(blocksize,block_lengths, disp, typelist, domain_t);
-    MPI_Type_commit(domain_t);
+    MPI_Type_create_struct(blocksize,block_lengths, disp, typelist, header_t);
+    MPI_Type_commit(header_t);
 }
 
 
@@ -85,11 +114,20 @@ void main(int argc, char** argv)
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
 
+
     /* ------------------------------- Read command line ------------------------------ */
     int p = atoi(argv[1]);
     int prows = atoi(argv[2]);   /* Number of procs in x direction */
     int pcols = atoi(argv[3]);   /* Number of procs in y direction */
     int Mout = atoi(argv[4]);
+    // int debug = atoi(argv[5]);
+
+#if 0
+    if (debug)
+    {
+        mpi_debug();        
+    }
+#endif    
 
     if (prows*pcols != nprocs)
     {
@@ -98,7 +136,7 @@ void main(int argc, char** argv)
     }
 
     /* ------------------------------- Other user parameters -------------------------- */
-    /* Domain is [ax,bx] x [ay,by] */
+    /* header is [ax,bx] x [ay,by] */
     double ax = 0;
     double bx = 1;
     double ay = 0;
@@ -137,45 +175,50 @@ void main(int argc, char** argv)
                   MPI_MODE_CREATE|MPI_MODE_WRONLY,
                   MPI_INFO_NULL, &file);
 
-    MPI_Datatype domain_t;
-    build_domain_type(&domain_t);
+    MPI_Datatype header_t;
+    create_header_type(&header_t);
 
-    struct_domain_t domain;    
+    struct_header_t header;    
     if (rank == 0)
     {
-        domain.xgrid[0] = ax;
-        domain.xgrid[1] = bx;
-        domain.ygrid[0] = ay;
-        domain.ygrid[1] = by;
-        domain.N[0] = Nx;
-        domain.N[1] = Ny;
-        domain.Mout = Mout;
+        header.xgrid[0] = ax;
+        header.xgrid[1] = bx;
+        header.ygrid[0] = ay;
+        header.ygrid[1] = by;
+        header.N[0] = Nx;
+        header.N[1] = Ny;
+        header.Mout = Mout;
 
-        MPI_File_write(file,&domain,1,domain_t, MPI_STATUS_IGNORE);  
+        MPI_File_write(file,&header,1,header_t, MPI_STATUS_IGNORE);  
     }
 
     /* --------------------- Create view for this processor into file ------------------*/
 
+    /* Create a file type : Data is distributed in a grid across processors */
     int ndims = 2;
     int globalsize[2] = {Nx+1,Ny+1};
     int localsize[2] = {Nx_local+1,Ny_local+1};
     int starts[2] = {mycoords[0]*Nx_local, mycoords[1]*Ny_local};
-    int order = MPI_ORDER_C;
+    int order = MPI_ORDER_C;  /* MPI_ORDER_FORTRAN */
 
-    MPI_Datatype localarray;
+    MPI_Datatype localarray_t;
     MPI_Type_create_subarray(ndims, globalsize, localsize, starts, order, 
-                             MPI_DOUBLE, &localarray);
+                             MPI_DOUBLE, &localarray_t);
 
-    MPI_Type_commit(&localarray);
+    MPI_Type_commit(&localarray_t);
+
+
+    MPI_Datatype timeinfo_t;
+    create_timeinfo_type(localarray_t,&timeinfo_t);
 
     MPI_Aint extent;
-    MPI_Type_extent(domain_t,&extent); 
-    MPI_Offset offset = extent;   /* Should be 24 bytes (8 + 8 + 4 + 4(extra)) */
-    MPI_File_set_view(file, offset,  MPI_DOUBLE, localarray, 
+    MPI_Type_extent(header_t,&extent); 
+    MPI_Offset disp = extent;   /* Should be 48 bytes (4*8 + 3*4 + 4(extra)) */
+    MPI_File_set_view(file, disp,  MPI_DOUBLE, localarray_t, 
                            "native", MPI_INFO_NULL);
 
 
-    /* -------------------------------- Create data to output ------------------------- */
+    /* ----------------------------------- Initialize data ---------------------------- */
 
 
     double **const u = allocate_2d(Nx_local,Ny_local,0);
@@ -190,11 +233,31 @@ void main(int argc, char** argv)
         }
     }
 
-    /* ------------------------------------- Write data ------------------------------- */
+    /* ------------------------------------ "Time step" ------------------------------- */
+
+    /* Write out initial time and solution */
+    double t = 0;
+
+    MPI_Offset offset;
+    MPI_Aint extent_la;
+    MPI_Type_extent(localarray_t,&extent_la); 
+
+    /* Write out the time and reposition the file handle */
+    if (rank == 0)
+    {
+        MPI_File_write(file,&t, 1, MPI_DOUBLE,MPI_STATUS_IGNORE);                        
+    }
+    disp += sizeof(double);
+    MPI_File_set_view(file, disp,  MPI_DOUBLE, localarray_t, 
+                      "native", MPI_INFO_NULL);
+
+    /* Output local array and update displacement */
+    int usize = (Nx_local+1)*(Ny_local+1);
+    MPI_File_write_all(file, &u[0][0], usize, MPI_DOUBLE, MPI_STATUS_IGNORE);
+    disp += extent_la;
 
     double dt = 0.1;
-    double t = 0;
-    for(int n = 0; n < Mout; n++)
+    for(int n = 1; n < Mout; n++)
     {
         t += dt;
         for(int j = 0; j <= Ny_local; j++)
@@ -204,17 +267,29 @@ void main(int argc, char** argv)
                 u[i][j] *= exp(-dt);   /* Fake heat diffusion */
             }
         }
-        int localsize = (Nx_local+1)*(Ny_local+1);
-        MPI_File_write_all(file, &u[0][0], localsize, MPI_DOUBLE, MPI_STATUS_IGNORE);
+        /* Write out the time and reposition the file handle */
+        if (rank == 0)
+        {
+            MPI_File_write(file,&t, 1, MPI_DOUBLE,MPI_STATUS_IGNORE);                        
+        }
+        disp += sizeof(double);
+        MPI_File_set_view(file, disp,  MPI_DOUBLE, localarray_t, 
+                          "native", MPI_INFO_NULL);
+
+        /* Collective write; update file displacement */
+        MPI_File_write_all(file, &u[0][0], usize, MPI_DOUBLE, MPI_STATUS_IGNORE);
+        disp += extent_la;
     }
 
 
-    /* ------------- Clean up */
-    MPI_File_close(&file);
+    /* ------------------------------- Clean up --------------------------------------- */
 
-    MPI_Type_free(&localarray);
+    MPI_Type_free(&localarray_t);
+    MPI_Type_free(&header_t);
 
     delete_2d(0,(double***) &u);
+
+    MPI_File_close(&file);
 
     MPI_Finalize();
 
