@@ -1,4 +1,4 @@
-function pout = cj(A,b,tol,kmax,fignum)
+function pout = cg(A,b,tol,kmax,fignum)
 
 figure(fignum);
 clf;
@@ -13,7 +13,7 @@ hold on;
 
 plot_single_contour = true;
 
-F = @(x) x'*A*x - 2*b'*x;
+F = @(x) 0.5*x'*A*x - b'*x;
 
 plot_contours(A,b);
 fprintf('Choose starting guess\n');
@@ -26,29 +26,27 @@ if (plot_single_contour)
 end
 
 rk = b - A*xk;
-dk = rk;
+pk = rk;
 
 clear p;
 for k = 1:kmax
     
-    Adk = A*dk;  % This is the only matrix vector multiply that we need.
-    % Adk = matvec(dk);  % Matrix-free method!
+    Apk = A*pk;  % This is the only matrix vector multiply that we need.
     
     % Update x. 
-    a1 = dot(rk,rk)/dot(dk,Adk);
-    xkp1 = xk + a1*dk;     % blas operation : gaxpy : genearlized ax + y
-    % rkp1 = b - A*xkp1;
-    rkp1 = rk - a1*Adk;    % gaxpy
+    a1 = dot(rk,rk)/dot(pk,Apk);
+    xkp1 = xk + a1*pk;     % blas operation : gaxpy : genearlized ax + y
+    rkp1 = rk - a1*Apk;    % gaxpy
     
     % Get A-conjugate directions
     a2 = dot(rkp1,rkp1)/dot(rk,rk);   % dot product x'*y  AllReduce
-    dkp1 = rkp1 + a2*dk;              % dot product
+    pkp1 = rkp1 + a2*pk;              % dot product
     
     % Compute the norm of the residual.
     p(k) = norm(rkp1,1);
     fprintf('%4d %16.6e\n',k,p(k));
         
-    dk = dkp1;
+    pk = pkp1;
     rk = rkp1;
     plot([xk(1) xkp1(1)],[xk(2) xkp1(2)],'r','linewidth',2);
     hold on;

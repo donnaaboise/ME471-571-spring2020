@@ -9,11 +9,16 @@ b = -1 + 2*rand(N,1);
 tol = 1e-6;
 kmax = 1000;
 
+J = struct('matrix','SPD','kmax',kmax,'tol',tol);
+GS = struct('matrix','SPD','kmax',kmax,'tol',tol);
+SD = struct('matrix','SPD','kmax',kmax,'tol',tol);
+CG = struct('matrix','SPD','kmax',kmax,'tol',tol);
+
 % ------------------------------ Jacobi -----------------------------------
 figure(1);
 mstr = 'Jacobi';
 fignum = 1;
-A = get_matrix(B,'SPD');  % Might not be diagonally dominant.
+A = get_matrix(B,J.matrix);  % Might not be diagonally dominant.
 disp(A)
 
 % Check if matrix is diagonally dominant
@@ -33,7 +38,7 @@ else
     fprintf('Factor is %f\n',max(v));
 end
 
-r = fixed_point(A,b,mstr,tol,kmax,fignum);
+r = fixed_point(A,b,mstr,J.tol,J.kmax,fignum);
 
 figure(5);
 p(1) = semilogy(r,'b.-','markersize',20);
@@ -46,8 +51,8 @@ input('Hit enter to see Gauss-Seidel : ');
 fignum = 2;
 
 mstr = 'Gauss-Seidel';
-A = get_matrix(B,'SPD');
-r = fixed_point(A,b,mstr,tol,kmax,fignum);
+A = get_matrix(B,GS.matrix);
+r = fixed_point(A,b,mstr,GS.tol,GS.kmax,fignum);
 
 figure(5);
 p(2) = semilogy(r,'r.-','markersize',20);
@@ -55,13 +60,13 @@ lstr{2} = mstr;
 
 % -------------------------- Steepest-Descent -----------------------------
 fprintf('\n');
-A = get_matrix(B,'SPD');
+A = get_matrix(B,SD.matrix);
 input('Hit enter to see Steepest-descent : ');
 fignum = 3;
 
 
 mstr = 'Steepest-descent';
-r = steepest_descent(A,b,tol,kmax,fignum);
+r = steepest_descent(A,b,SD.tol,SD.kmax,fignum);
 
 figure(5);
 p(3) = semilogy(r,'m.-','markersize',20);
@@ -73,8 +78,8 @@ input('Hit enter to see Conjugate gradient : ');
 fignum = 4;
 
 mstr = 'Conjugate-gradient';
-A = get_matrix(B,'SPD');
-r = cj(A,b,tol,kmax,fignum);
+A = get_matrix(B,CG.matrix);
+r = cg(A,b,CG.tol,CG.kmax,fignum);
 
 figure(5);
 p(4) = semilogy(r,'c.-','markersize',20);
@@ -115,6 +120,8 @@ switch method
         S = sum(abs(A1'))';  % compute absolution row  sum of off diagonals
         v = beta*d./S;       % Compute scaling factors for off-diagonal entries
         A = A1.*v + D;       
+    case 'S'
+        A = (B + B');
     case 'SPD'
         A = B'*B;
         

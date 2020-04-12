@@ -1,8 +1,8 @@
-function pout = steepest_descent(A,b,tol,kmax,fignum)
+function [pout,eout] = steepest_descent(A,b,tol,kmax,fignum)
 
 plot_single_contour = true;
 
-F = @(x) x'*A*x - 2*b'*x;
+F = @(x) 0.5*x'*A*x - b'*x;
 
 figure(fignum);
 clf;
@@ -11,59 +11,78 @@ title('Steepest-Descent','fontsize',18);
 set(gca,'fontsize',16);
 xlabel('x','fontsize',16);
 ylabel('y','fontsize',16);
+hold on;
 
-
-plot_contours(A,b);
+hout = plot_contours(A,b);
+set(hout,'visible','off');
 fprintf('Choose starting guess\n');
 xk = ginput(1);
 xk = xk(:);
+
+
 if (plot_single_contour)
     Fx = F(xk);
-    plot_contours(A,b,Fx);
+    hout = plot_contours(A,b,Fx);
+    set(hout,'color','k');
     % input('Hit enter to see next iterate :');
     pause(0.5);
 end
 
-rk = b - A*xk;
-dk = rk;
+%{
+% If the error is an eigenvector, SD will converges in 1 step.
+[evec,eval] = eig(A);
 
+xbar = A\b;
+xk = xbar + evec(:,1);  
+%}
+
+rk = b - A*xk;
+pk = rk;
+
+resid = zeros(kmax,1);
+err = zeros(kmax,1);
+
+resid(1) = norm(rk,1);
 for k = 1:kmax
     
-    Adk = A*dk;
+    Apk = A*pk;
     
     % Update x. 
-    a1 = dot(rk,rk)/dot(dk,Adk);
-    xkp1 = xk + a1*dk;
-    rkp1 = b - A*xkp1;
-    dkp1 = rkp1;
+    a1 = dot(rk,rk)/dot(pk,Apk);
+    xkp1 = xk + a1*pk;
+    rkp1 = rk - a1*Apk;
+    pkp1 = rkp1;
     
     % Compute the norm of the residual.
-    p(k) = norm(rkp1,1);
-    fprintf('%4d %16.6e\n',k,p(k));    
+    resid(k) = norm(rkp1,1);
+    err(k) = norm(xkp1-xk,1);
+    fprintf('%4d %16.6e\n',k,resid(k));    
         
-    dk = dkp1;
     rk = rkp1;
+    pk = pkp1;
     
     plot([xk(1) xkp1(1)],[xk(2) xkp1(2)],'r','linewidth',2);
     hold on;
     plot([xk(1) xkp1(1)],[xk(2) xkp1(2)],'k.','markersize',30);
     if (plot_single_contour)
         Fx = F(xk);
-        plot_contours(A,b,Fx);
+        hout = plot_contours(A,b,Fx);
+        set(hout,'color','k');
         % input('Hit enter to see next iterate :');
         pause(0.5);
     end
     xk = xkp1;
-    if (p(k) < tol)
+    if (resid(k) < tol)
         break;
-    elseif isnan(p(k))
+    elseif isnan(resid(k))
         break;
     end
 end
 plot(xkp1(1),xkp1(2),'k.','markersize',30);
 
 if (nargout > 0)
-    pout = p;
+    pout = resid;
+    eout = err;
 end
 
 end
