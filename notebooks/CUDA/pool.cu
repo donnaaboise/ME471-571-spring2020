@@ -29,28 +29,31 @@ __global__ void worker(float *t,int *s)
 
 #define N 1536
 
-int main(void) 
+int main(int *argc, char** argc) 
 {
-    float *dev_t;
-    int *dev_s;
-    float t[N];
-    int s[N];
-    float SM[8] = {0,0,0,0,0,0,0,0};
-    int i;
+    printf("Enter a number of blocks : ");
+    int N = atoi(argv[1]);
+    printf("\n");
+
+    double SM[8] = {0,0,0,0,0,0,0,0};
 
     /* Allocate memory on the device */
+    double *dev_t, *dev_s;
     cudaMalloc( (void**)&dev_t, N*sizeof(float));
     cudaMalloc( (void**)&dev_s, N*sizeof(int));
 
     random_seed();
 
     float maxt = 0;
-    for(i = 0; i < N; i++)
+    double t[N];
+    int s[N];
+    for(int i = 0; i < N; i++)
     {           
         t[i] = 1; // 10*random_number();
         maxt = t[i] > maxt ? t[i] : maxt;
     }
 
+    /* Copy times to global memory on the GPU */
     cudaMemcpy(dev_t, t, N*sizeof(float), cudaMemcpyHostToDevice);
 
     worker<<<48,32>>>(dev_t, dev_s);
