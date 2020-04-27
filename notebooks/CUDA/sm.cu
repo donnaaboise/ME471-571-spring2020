@@ -93,7 +93,9 @@ int main(int argc, char* argv[])
     if (argc > 4)
         scale_factor = atof(argv[4]);
 
-    printf("scale_factor = %d\n",scale_factor);
+    int prt = 1;
+    if (argc > 5)
+        prt = atof(argv[5]);
 
     /* Create verctor of "work" for each block */
     float* t = (float*) malloc(num_blocks*sizeof(float));
@@ -157,28 +159,36 @@ int main(int argc, char* argv[])
 
     printf("------------------------------------------------------------------------------\n");
     printf("\n");
-    printf("SM    #blocks/SM  #threads/SM    work/SM(s)       block list/SM\n");
+    printf("SM    #blocks/SM  #threads/SM    #warps/SM     work/SM(s)       block list/SM\n");
     printf("------------------------------------------------------------------------------\n");
     for(int i = 0; i < mp; i++)
     {
         int bpSM = blocks_per_SM[i];
         int tpSM = blocks_per_SM[i]*threads_per_block;  
-        printf("%2d %13d %12d %10.2f  ",
-               i,bpSM, tpSM, time_per_SM[i]);
+        int wpSM = blocks_per_SM[i]*(threads_per_block + 32-1)/32;
+        printf("%2d %13d %12d %12d %10.2f  ",
+               i,bpSM, tpSM, wpSM, time_per_SM[i]);
 
-        if (bpSM > 0)
-            printf("   (");
-
-        for(int k = 0; k < bpSM; k++)
+        if (prt)
         {
-            printf("%3d",sm_list[i][k]);
-            if (k < bpSM-1)
-                printf(", ");
+            if (bpSM > 0)
+                printf("   (");
+
+            for(int k = 0; k < bpSM; k++)
+            {
+                printf("%3d",sm_list[i][k]);
+                if (k < bpSM-1)
+                    printf(", ");
+            }
+            if (bpSM > 0)
+                printf(")\n");
+            else
+                printf("\n");
         }
-        if (bpSM > 0)
-            printf(")\n");
         else
+        {
             printf("\n");
+        }
 
     }
     printf("------------------------------------------------------------------------------\n");

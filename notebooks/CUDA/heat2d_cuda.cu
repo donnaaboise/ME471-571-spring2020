@@ -6,11 +6,10 @@
 #define IDX(i,j,cols,mbc)   i*cols + j + mbc  
 
 __global__ void heat2d_update(int Nx, int Ny, int mbc, double dx, double dy,
-                            double dt, double *qmem, double** qrows, 
-                            double *qpmem, double** qprows);
+                            double dt, double ***q, double*** qp); 
 
 __global__ void setup_arrays2d_cuda(int Nx, int Ny, int mbc, 
-                                    double *qmem, double** qrows);
+                                    double *qmem, double** qrows, double ***q);
 
 
 void allocate_2d(int N, int M, int mbc, double ***q)
@@ -131,20 +130,20 @@ int main(int argc, char** argv)
     k++;  /* Number of output files created */
 
     /* ---------------------------- Setup CUDA arrays ----------------------------------*/
-    double *dev_q, *dev_qp;
-
     int rows  = (Nx + 1 + 2*mbc);
     int cols  = (Ny + 1 + 2*mbc);
 
-    cudaMalloc( (void**) &dev_q, rows*cols*sizeof(double));
-    double **dev_qrows;
+    double *dev_qmem, **dev_qrows, ***dev_q;
+    cudaMalloc( (void**) &dev_qmem, rows*cols*sizeof(double));
     cudaMalloc( (void***) &dev_qrows, rows*sizeof(double*));
-    setup_arrays2d_cuda<<<1,1>>>(Nx,Ny,mbc,dev_q, dev_qrows);
+    cudaMalloc( (void****) &dev_q, sizeof(double**));
+    setup_arrays2d_cuda<<<1,1>>>(Nx,Ny,mbc,dev_qmem, dev_qrows,dev_q);    
 
-    cudaMalloc( (void**) &dev_qp, rows*cols*sizeof(double));
-    double **dev_qprows;
+    double *dev_qpmem, **dev_qprows, ***dev_qp;
+    cudaMalloc( (void**) &dev_qpmem, rows*cols*sizeof(double));
     cudaMalloc( (void***) &dev_qprows, rows*sizeof(double*));
-    setup_arrays2d_cuda<<<1,1>>>(Nx,Ny,mbc,dev_qp, dev_qprows);
+    cudaMalloc( (void****) &dev_qp, sizeof(double**));
+    setup_arrays2d_cuda<<<1,1>>>(Nx,Ny,mbc,dev_qpmem, dev_qprows,dev_qp);
 
     /* --------------------------- Start time stepping ---------------------------------*/
     /* Store q^{n+1} */
@@ -172,21 +171,28 @@ int main(int argc, char** argv)
         /* ------------------------------ CUDA Kernel call -----------------------------*/
 
         int qsize = rows*cols;
-        cudaMemcpy(dev_q, &q[-mbc][-mbc], qsize*sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_qmem, &q[-mbc][-mbc], qsize*sizeof(double), 
+                   cudaMemcpyHostToDevice);
 
 
         int msize = Nx + 1;
         int nsize = Ny + 1;
-        dim3 block(16,16);
+        int gx = 4, gy = 4;
+        dim3 block(gx,gy);
         dim3 grid((msize+block.x - 1)/block.x, (nsize+block.y - 1)/block.y);
 
-        heat2d_update<<<grid,block>>>(Nx, Ny, mbc, dx2, dy2, dt,
-                                      dev_q, dev_qrows, 
-                                      dev_qp, dev_qprows);
+        int rows = (gx + 1 + 2*mbc);
+        int cols = (gy + 1 + 2*mbc);
+        size_t bytes_per_block = rows*(cols*sizeof(double) + sizeof(double*));
+
+        heat2d_update<<<grid,block,bytes_per_block>>>(Nx, Ny, mbc, dx2, dy2, dt, dev_q, dev_qp);
+
 
         cudaDeviceSynchronize();
 
-        cudaMemcpy(&qp[-mbc][-mbc], dev_qp, qsize*sizeof(double), cudaMemcpyDeviceToHost);
+        exit(0);
+
+        cudaMemcpy(&qp[-mbc][-mbc], dev_qpmem, qsize*sizeof(double), cudaMemcpyDeviceToHost);
 
         /* -------------------------------- Write output -------------------------------*/
         if (n == noutsteps[k])
@@ -203,12 +209,6 @@ int main(int argc, char** argv)
         qp = qtmp;
     }
     fclose(fout);
-
-    cudaFree(dev_q);
-    cudaFree(dev_qrows);
-
-    cudaFree(dev_qp);
-    cudaFree(dev_qprows);
 
     delete_2d(mbc,&q);
     delete_2d(mbc,&qp);
