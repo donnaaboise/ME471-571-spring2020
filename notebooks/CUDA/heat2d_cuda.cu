@@ -177,7 +177,7 @@ int main(int argc, char** argv)
 
         int msize = Nx + 1;
         int nsize = Ny + 1;
-        int gx = 4, gy = 4;
+        int gx = 8, gy = 8;
         dim3 block(gx,gy);
         dim3 grid((msize+block.x - 1)/block.x, (nsize+block.y - 1)/block.y);
 
@@ -187,10 +187,7 @@ int main(int argc, char** argv)
 
         heat2d_update<<<grid,block,bytes_per_block>>>(Nx, Ny, mbc, dx2, dy2, dt, dev_q, dev_qp);
 
-
-        cudaDeviceSynchronize();
-
-        exit(0);
+        cudaDeviceSynchronize();        
 
         cudaMemcpy(&qp[-mbc][-mbc], dev_qpmem, qsize*sizeof(double), cudaMemcpyDeviceToHost);
 
